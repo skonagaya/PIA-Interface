@@ -1,11 +1,13 @@
 # PIA-Interface
 An Alfred Workflow used to Start and Stop Private Internet Access services.
 
-## Demo
+## Start Command Demo
 
-![Start Demo](https://giant.gfycat.com/DeepCalculatingIaerismetalmark.gif)
+![Start Demo](https://zippy.gfycat.com/DeepCalculatingIaerismetalmark.gif)
 
-![Stop Demo](https://giant.gfycat.com/ChiefOffensiveIberianemeraldlizard.gif)
+## Stop Command Demo
+
+![Stop Demo](https://zippy.gfycat.com/ChiefOffensiveIberianemeraldlizard.gif)
 
 ## Installation
 1. Download PIA Inteface.alfredworkflow
