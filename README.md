@@ -22,6 +22,11 @@ An Alfred Workflow used to Start and Stop Private Internet Access services.
 - "pia stop"
   - Shuts down VPN connection and closes PIA application.
 
+### Keywords/Hotkeys
+You can also specify keywords and hotkeys to toggle PIA start/stop. This is managed by going to the workflow settings screen inside Alfred preferences.
+
+Default keywords are "startpia" and "stoppia" but these can be modified as you choose.
+
 ## Support Versions
 - macOS Sierra 10.12.3
 - Private Internet Access v66
