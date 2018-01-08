@@ -20,111 +20,63 @@ EXTERNAL_IP_TIMEOUT=20
 SHUTDOWN_TIMEOUT=20
 
 # PIA openvpn state
-openvpn_state=$(ps -ef | grep --line-buffered pia_manager | grep --line-buffered openvpn)
+PIA_state=$(ps -ef | grep --line-buffered pia_nw)
 
 # PIA state
-PIA_state=$(ps -ef | grep --line-buffered pia | grep --line-buffered "\-\-run")
+openvpn_state=$(ps -ef | grep --line-buffered pia | grep --line-buffered "openvpn --client")
 
-# If not running already
-if [[ -z  $openvpn_state ]]
+# Username used to create log path dynamically
+logged_in_user=$(id -un)
+
+# log path
+log_path=/Users/"$logged_in_user"/.pia_manager/log/pia_manager.log
+
+if [[ $script_command == "start" ]]
 then
-	if [[ $script_command == "start" ]]
+	# if already running but disconnected, restart
+	if [[ -z $openvpn_state ]]
 	then
-		# if already running but disconnected, restart
-		if [[ ! -z $PIA_state ]]
-		then
-			# Issue a kill on the PIA Process
-			ps -ef | grep --line-buffered pia | grep --line-buffered "\-\-run" | awk '{print $2}' | xargs kill 2>/dev/null
+		# Issue a kill on the PIA Process
+		ps -ef | grep --line-buffered "Private Internet Access" | grep -m 1 --line-buffered pia_nw | awk '{print $3}' | xargs kill 2>/dev/null
 
-			# Buffer 1 second
-			sleep 1
+		# Buffer 1 second
+		sleep 3
 
-			# Wait for openvpn to shut down
-			for i in $(seq 1 $SHUTDOWN_TIMEOUT)
-			do
-				# PIA IP. Empty string if not running
-				openvpnIP=$(ps -ef | grep --line-buffered pia_manager | grep --line-buffered openvpn | sed -l 's/.*--remote //g; s/ 8080.*//g')	
-				if [[ -z $openvpnIP ]]
-				then
-					break
-				else 
-					if [ $SHUTDOWN_TIMEOUT -eq $i ]
-					then 
-						echo "Uh oh. Shutdown timed out."
-						exit
-					fi
-					sleep 1
-				fi
-			done
-		fi
-		# Start PIA
-		open -n /Applications/Private\ Internet\ Access.app &
-
-		# Wait till openvpnIP is assigned.
-		for i in $(seq 1 $OPENVPN_TIMEOUT)
+		# Wait for openvpn to shut down
+		for i in $(seq 1 $SHUTDOWN_TIMEOUT)
 		do
 			# PIA IP. Empty string if not running
 			openvpnIP=$(ps -ef | grep --line-buffered pia_manager | grep --line-buffered openvpn | sed -l 's/.*--remote //g; s/ 8080.*//g')	
-
-			# Also wait till an IP is assigned
-			if [[ ! -z $openvpnIP ]] && [[ $openvpnIP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+			if [[ -z $openvpnIP ]]
 			then
 				break
 			else 
-				if [ $OPENVPN_TIMEOUT -eq $i ]
+				if [ $SHUTDOWN_TIMEOUT -eq $i ]
 				then 
-					echo "Unable to find PIA IP. Client version out of date."
+					echo "Uh oh. Shutdown timed out."
 					exit
 				fi
 				sleep 1
 			fi
 		done
 
-		# Wait for external IP to pick up PIA IP
-		for i in $(seq 1 $EXTERNAL_IP_TIMEOUT)
-		do
-			# External IP from source #1. Empty if fetch fails
-			externalIP=$(dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null)
+		# Start PIA
+		open -n /Applications/Private\ Internet\ Access.app &
 
-			# Eternal IP from source #2. Runs if first attempt fails
-			if [[ -z $externalIP ]]
-			then
-				echo "First attempt failed"
-				externalIP=$(curl ipecho.net/plain 2>/dev/null)
-				if [[ -z $externalIP ]]
-				then
-					echo "Unable to fetch external IP. Check internet connection or try again later."
-					exit
-				fi
-			fi
-
-			if [ "$externalIP" == "$openvpnIP" ]
-			then
-				echo "PIA Connection Established"
-				exit
-			fi
-
-			if [ $EXTERNAL_IP_TIMEOUT -eq $i ]
-			then
-				echo "Took too long to establish PIA connection."
-				exit
-			else
-				sleep 1
-			fi
-		done
-	elif [[ $script_command == "stop" ]]
-	then
-		echo "PIA already stopped."
-	fi
-# else if already running
-else
-	if [[ $script_command == "start" ]]
-	then
+		# Clear the log to allow sed to read the most recent outputs of the tail command
+		echo > $log_path
+		tail -f $log_path | sed -n '/Connection status is CONNECTED/ q'
+		echo "PIA Connected."
+	else
 		echo "PIA already running."
-	elif [[ $script_command == "stop" ]]
+	fi
+elif [[ $script_command == "stop" ]]
+then
+	# if running disconnected, stop
+	if [[ ! -z $PIA_state ]] 
 	then
 		# Issue a kill on the PIA Process
-		ps -ef | grep --line-buffered pia | grep --line-buffered "\-\-run" | awk '{print $2}' | xargs kill 2>/dev/null
+		ps -ef | grep --line-buffered "Private Internet Access" | grep -m 1 --line-buffered pia_nw | awk '{print $3}' | xargs kill 2>/dev/null
 
 		# Buffer 1 second
 		sleep 1
@@ -147,5 +99,7 @@ else
 				sleep 1
 			fi
 		done
+	else
+		echo "PIA already stopped."
 	fi
 fi
